@@ -15,8 +15,9 @@ class Database:
         sqlCreatePersonTableStatement = """
         CREATE TABLE IF NOT EXISTS person (
         pid Integer PRIMARY KEY,
-        username VARCHAR(30),
-        password VARCHAR(30)
+        userName VARCHAR(30),
+        password VARCHAR(30),
+        UNIQUE(userName)
         );"""
 
         sqlCreateGameTableStatement = """
@@ -109,35 +110,35 @@ class Database:
     def getGamesSummaryForGameAndDifficultyAndPlayerID(self, gameName, difficulty, playerID):
         """get the summary of the games for a chosen game, difficulty and playerID
 
-                Args:
-                    gameName (str): string representing the game
-                    difficulty (int): int representing the depth of search for the algorithm
-                    playerID (int): int representing the primary key of the chosen player
+            Args:
+                gameName (str): string representing the game
+                difficulty (int): int representing the depth of search for the algorithm
+                playerID (int): int representing the primary key of the chosen player
 
-                Returns:
-                    list: Lists filled with:
-                            pid (int)
-                            userName (str),
-                            difficulty (int),
-                            total amount of games (int),
-                            amount of games won (int),
-                            amount of games lost (int),
-                            amount of games cancelled (int),
-                            summ of destroyedPawns (int)
-                """
+            Returns:
+                list: Lists filled with:
+                        pid (int)
+                        userName (str),
+                        difficulty (int),
+                        total amount of games (int),
+                        amount of games won (int),
+                        amount of games lost (int),
+                        amount of games cancelled (int),
+                        summ of destroyedPawns (int)
+        """
         sqlSelectStatement = """
-                    SELECT 
-                    person.pid, person.userName, game.difficulty, 
-                    COUNT() AS 'totalGames', 
-                    COUNT(CASE WHEN game.outcome = 'won'       then 1 END) AS 'gamesWon', 
-                    COUNT(CASE WHEN game.outcome = 'lost'      then 1 END) AS 'gamesLost', 
-                    COUNT(CASE WHEN game.outcome = 'cancelled' then 1 END) AS 'gamesCancelled', 
-                    SUM(game.destroyedPawns) AS 'destroyedPawns' 
-                    FROM person
-                    LEFT OUTER JOIN game ON person.pid = game.pid
-                    WHERE game.gameName = ? AND game.difficulty = ? AND person.pid = ?
-                    GROUP By person.pid, game.difficulty, game.gameName
-                    """
+            SELECT 
+            person.pid, person.userName, game.difficulty, 
+            COUNT() AS 'totalGames', 
+            COUNT(CASE WHEN game.outcome = 'won'       then 1 END) AS 'gamesWon', 
+            COUNT(CASE WHEN game.outcome = 'lost'      then 1 END) AS 'gamesLost', 
+            COUNT(CASE WHEN game.outcome = 'cancelled' then 1 END) AS 'gamesCancelled', 
+            SUM(game.destroyedPawns) AS 'destroyedPawns' 
+            FROM person
+            LEFT OUTER JOIN game ON person.pid = game.pid
+            WHERE game.gameName = ? AND game.difficulty = ? AND person.pid = ?
+            GROUP By person.pid, game.difficulty, game.gameName
+            """
         self.__cursor.execute(sqlSelectStatement, (gameName, difficulty, playerID))
         self.__connection.commit()
         return self.__cursor.fetchall()
@@ -165,6 +166,61 @@ class Database:
         self.__cursor.execute(sqlSelectStatement, (playerID,))
         self.__connection.commit()
         return self.__cursor.fetchall()
+
+    def registerNewPerson(self, userName, password):
+        """Adds a new set of data representing
+
+                Args:
+                    userName (str): string representing the name of the User
+                    password (string): string representing the hash version of the password
+
+                Returns:
+                    none
+        """
+        sqlInsertStatement = """
+        INSERT INTO person values(?,?,?)
+        """
+        self.__cursor.execute(sqlInsertStatement, (None, userName, password))
+        self.__connection.commit()
+
+    def getPersonByUserName(self, userName):
+        """Adds a new set of data representing
+
+                Args:
+                    userName (str): string representing the name of the User
+
+                Returns:
+                    list: List filled with:
+                            pid (int),
+                            userName (str),
+                            password (str) in hash format
+        """
+        sqlSelectStatement = """
+        SELECT * FROM person 
+        WHERE userName = ?
+        """
+        self.__cursor.execute(sqlSelectStatement, (userName,))
+        self.__connection.commit()
+        return self.__cursor.fetchall()
+
+    def registerNewGame(self, pid, gameName, difficulty, outcome, destroyedPawns):
+        """Adds a new set of data representing
+
+                Args:
+                    pid (int): int representing the id of the player that played this game
+                    gameName (str): string representing the game
+                    difficulty (int): int representing the depth of search for the algorithm
+                    outcome (str): string representing the outcome of the game ('won'/'lost'/'cancelled')
+                    destroyedPawns (int): int representing the number of opponents destroyed in this game
+
+                Returns:
+                    none
+        """
+        sqlInsertStatement = """
+        INSERT INTO game VALUES(?,?,?,?,?,?)
+        """
+        self.__cursor.execute(sqlInsertStatement, (None, pid, gameName, difficulty, outcome, destroyedPawns))
+        self.__connection.commit()
 
     @staticmethod
     def getInstance():
