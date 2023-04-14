@@ -210,13 +210,10 @@ class Dame(Game, ABC):
         return False
 
 
-class GameController:
+class KI(ABC):
 
     def __init__(self, game: Game):
         self.game = game
-
-    def startGame(self, startPlayer="A"):
-        self.doAction(startPlayer)
 
     def generateAllMoveActions(self, player: str):
         actions = []
@@ -228,11 +225,36 @@ class GameController:
                 actions.append(MoveAction(pawn, pawnTargetPos[0], pawnTargetPos[1]))
         return actions
 
+    def getAction(self, player: str) -> MoveAction:
+        possibleActions = self.generateAllMoveActions(player)
+        return self.chooseMoveAction(possibleActions)
+
+    @abc.abstractmethod
+    def chooseMoveAction(self, possible_actions: []) -> MoveAction:
+        pass
+
+
+class RandomKi(KI, ABC):
+
+    def chooseMoveAction(self, possible_actions: []) -> MoveAction:
+        random = randint(0, len(possible_actions) - 1)
+        return possible_actions[random]
+
+
+class GameController:
+
+    def __init__(self, game: Game, ki: str):
+        self.game = game
+        class_ = globals()[ki]
+        self.ki = class_(game)
+
+    def startGame(self, startPlayer="A"):
+        self.doAction(startPlayer)
+
     def controlKI(self):
         print("KI is Playing")
-        possibleActions = self.generateAllMoveActions("B")
-        random = randint(0, len(possibleActions) - 1)
-        self.game.movePawn(possibleActions[random])
+        moveAction = self.ki.getAction("B")
+        self.game.movePawn(moveAction)
 
     def doAction(self, player: str):
         if self.game.checkIfLose(player):
@@ -296,5 +318,5 @@ class GameController:
 game = BauernSchach()
 game.gameField.printGameField()
 
-gameController = GameController(game)
+gameController = GameController(game, "RandomKi")
 gameController.startGame()
