@@ -4,6 +4,7 @@ import abc
 import re
 from abc import ABC
 from typing import Optional
+from random import randint
 
 
 def containsKey(dict, searchKey) -> bool:
@@ -13,7 +14,7 @@ def containsKey(dict, searchKey) -> bool:
     return False
 
 
-class Pawn():
+class Pawn:
     def __init__(self, posX, posY, player):
         self.posX = posX
         self.posY = posY
@@ -23,14 +24,14 @@ class Pawn():
         return self.player
 
 
-class MoveAction():
+class MoveAction:
     def __init__(self, pawn: Pawn, targetPosX: int, targetPosY: int):
         self.pawn = pawn
         self.targetPosX = targetPosX
         self.targetPosY = targetPosY
 
 
-class GameField():
+class GameField:
     def __init__(self, size=6, players=["A", "B"]):
         self.playerPawns = {player: [] for player in players}
         self.gameField = [[None for _ in range(size)] for _ in range(size)]
@@ -56,7 +57,7 @@ class GameField():
             return
         self.movePawn(pawn, posX, posY)
 
-    def movePawn(self, pawn, posX, posY) -> None:
+    def movePawn(self, pawn: Pawn, posX: int, posY: int) -> None:
         targetPawn = self.gameField[posY][posX]
         if targetPawn is not None:
             targetPawns = self.getPawnsForPlayerKey(targetPawn.player)
@@ -94,7 +95,7 @@ class GameField():
 #         amountChilds += countChilds(child)
 #     return len(action.childs) + amountChilds
 
-class Game():
+class Game:
     def __init__(self):
         self.gameField = GameField()
         self.generatePawns()
@@ -209,23 +210,68 @@ class Dame(Game, ABC):
         return False
 
 
-class GameController():
+class KI(ABC):
 
     def __init__(self, game: Game):
         self.game = game
 
+    def generateAllMoveActions(self, player: str):
+        actions = []
+        pawns = self.game.getPossiblePawnsForPlayer(player)
+        for pawnPos in pawns:
+            pawn = self.game.gameField.getPawnForPos(pawnPos[0], pawnPos[1])
+            pawnPossiblePositions = self.game.getPossiblePawnDestinationsForChosenPawn(pawn)
+            for pawnTargetPos in pawnPossiblePositions:
+                actions.append(MoveAction(pawn, pawnTargetPos[0], pawnTargetPos[1]))
+        return actions
+
+    def getAction(self, player: str) -> MoveAction:
+        possibleActions = self.generateAllMoveActions(player)
+        return self.chooseMoveAction(possibleActions)
+
+    @abc.abstractmethod
+    def chooseMoveAction(self, possible_actions: []) -> MoveAction:
+        pass
+
+
+class RandomKi(KI, ABC):
+
+    def chooseMoveAction(self, possible_actions: []) -> MoveAction:
+        random = randint(0, len(possible_actions) - 1)
+        return possible_actions[random]
+
+
+class GameController:
+
+    def __init__(self, gameObj: Game, ki: str):
+        self.game = gameObj
+        class_ = globals()[ki]
+        self.ki = class_(gameObj)
+
     def startGame(self, startPlayer="A"):
         self.doAction(startPlayer)
 
+    def controlKI(self):
+        print("KI is Playing")
+        moveAction = self.ki.getAction("B")
+        self.game.movePawn(moveAction)
+
     def doAction(self, player: str):
-        if self.game.checkIfWon(player) or self.game.checkIfLose(player):
+        if self.game.checkIfLose(player):
             print("Game Over!")
             return
-        moveAction = self.userInputPossibleMoves(player)
-        if not self.game.movePawn(moveAction):
-            self.game.gameField.printGameField()
-            return self.doAction(player)
+        # "KI" is Playing
+        if player == "B":
+            self.controlKI()
+        else:
+            moveAction = self.userInputPossibleMoves(player)
+            if not self.game.movePawn(moveAction):
+                self.game.gameField.printGameField()
+                return self.doAction(player)
         self.game.gameField.printGameField()
+        if self.game.checkIfWon(player):
+            print("Game Over!")
+            return
 
         enemy = "B" if player == "A" else "A"
         self.doAction(enemy)
@@ -272,5 +318,5 @@ class GameController():
 game = BauernSchach()
 game.gameField.printGameField()
 
-gameController = GameController(game)
+gameController = GameController(game, "RandomKi")
 gameController.startGame()
