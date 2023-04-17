@@ -13,7 +13,7 @@ def containsKey(dict, searchKey) -> bool:
     return False
 
 
-class Pawn:
+class Pawn():
     def __init__(self, posX, posY, player):
         self.posX = posX
         self.posY = posY
@@ -23,14 +23,14 @@ class Pawn:
         return self.player
 
 
-class MoveAction:
+class MoveAction():
     def __init__(self, pawn: Pawn, targetPosX: int, targetPosY: int):
         self.pawn = pawn
         self.targetPosX = targetPosX
         self.targetPosY = targetPosY
 
 
-class GameField:
+class GameField():
     def __init__(self, size=6, players=["A", "B"]):
         self.playerPawns = {player: [] for player in players}
         self.gameField = [[None for _ in range(size)] for _ in range(size)]
@@ -56,7 +56,7 @@ class GameField:
             return
         self.movePawn(pawn, posX, posY)
 
-    def movePawn(self, pawn: Pawn, posX: int, posY: int) -> None:
+    def movePawn(self, pawn, posX, posY) -> None:
         targetPawn = self.gameField[posY][posX]
         if targetPawn is not None:
             targetPawns = self.getPawnsForPlayerKey(targetPawn.player)
@@ -94,7 +94,7 @@ class GameField:
 #         amountChilds += countChilds(child)
 #     return len(action.childs) + amountChilds
 
-class Game:
+class Game():
     def __init__(self):
         self.gameField = GameField()
         self.generatePawns()
@@ -209,10 +209,10 @@ class Dame(Game, ABC):
         return False
 
 
-class GameController:
+class GameController():
 
-    def __init__(self, gameObject: Game):
-        self.game = gameObject
+    def __init__(self, game: Game):
+        self.game = game
 
     def startGame(self, startPlayer="A"):
         self.doAction(startPlayer)
