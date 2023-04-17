@@ -4,6 +4,7 @@ import abc
 import re
 from abc import ABC
 from typing import Optional
+from random import randint
 
 
 def containsKey(dict, searchKey) -> bool:
@@ -209,23 +210,68 @@ class Dame(Game, ABC):
         return False
 
 
+class KI(ABC):
+
+    def __init__(self, game: Game):
+        self.game = game
+
+    def generateAllMoveActions(self, player: str):
+        actions = []
+        pawns = self.game.getPossiblePawnsForPlayer(player)
+        for pawnPos in pawns:
+            pawn = self.game.gameField.getPawnForPos(pawnPos[0], pawnPos[1])
+            pawnPossiblePositions = self.game.getPossiblePawnDestinationsForChosenPawn(pawn)
+            for pawnTargetPos in pawnPossiblePositions:
+                actions.append(MoveAction(pawn, pawnTargetPos[0], pawnTargetPos[1]))
+        return actions
+
+    def getAction(self, player: str) -> MoveAction:
+        possibleActions = self.generateAllMoveActions(player)
+        return self.chooseMoveAction(possibleActions)
+
+    @abc.abstractmethod
+    def chooseMoveAction(self, possible_actions: []) -> MoveAction:
+        pass
+
+
+class RandomKi(KI, ABC):
+
+    def chooseMoveAction(self, possible_actions: []) -> MoveAction:
+        random = randint(0, len(possible_actions) - 1)
+        return possible_actions[random]
+
+
 class GameController:
 
-    def __init__(self, gameObject: Game):
-        self.game = gameObject
+    def __init__(self, gameObj: Game, ki: str):
+        self.game = gameObj
+        class_ = globals()[ki]
+        self.ki = class_(gameObj)
 
     def startGame(self, startPlayer="A"):
         self.doAction(startPlayer)
 
+    def controlKI(self):
+        print("KI is Playing")
+        moveAction = self.ki.getAction("B")
+        self.game.movePawn(moveAction)
+
     def doAction(self, player: str):
-        if self.game.checkIfWon(player) or self.game.checkIfLose(player):
+        if self.game.checkIfLose(player):
             print("Game Over!")
             return
-        moveAction = self.userInputPossibleMoves(player)
-        if not self.game.movePawn(moveAction):
-            self.game.gameField.printGameField()
-            return self.doAction(player)
+        # "KI" is Playing
+        if player == "B":
+            self.controlKI()
+        else:
+            moveAction = self.userInputPossibleMoves(player)
+            if not self.game.movePawn(moveAction):
+                self.game.gameField.printGameField()
+                return self.doAction(player)
         self.game.gameField.printGameField()
+        if self.game.checkIfWon(player):
+            print("Game Over!")
+            return
 
         enemy = "B" if player == "A" else "A"
         self.doAction(enemy)
@@ -272,5 +318,5 @@ class GameController:
 game = BauernSchach()
 game.gameField.printGameField()
 
-gameController = GameController(game)
+gameController = GameController(game, "RandomKi")
 gameController.startGame()
