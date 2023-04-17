@@ -112,9 +112,12 @@ class Game:
     def checkIfLose(self, player: str) -> bool:
         pass
 
-    @abc.abstractmethod
     def getPossiblePawnsForPlayer(self, player: str) -> []:
-        pass
+        pawnsList = []
+        for pawn in self.gameField.getPawnsForPlayerKey(player):
+            if pawn is not None and len(self.getPossiblePawnDestinationsForChosenPawn(pawn)) > 0:
+                pawnsList.append([pawn.posX, pawn.posY])
+        return pawnsList
 
     @abc.abstractmethod
     def checkIfMoveValid(self, move: MoveAction) -> bool:
@@ -124,12 +127,28 @@ class Game:
     def getPossiblePawnDestinationsForChosenPawn(self, pawn: Pawn):
         pass
 
+
     def movePawn(self, move: MoveAction) -> bool:
         if self.checkIfMoveValid(move):
             self.gameField.movePawn(move.pawn, move.targetPosX, move.targetPosY)
             return True
         else:
             return False
+
+    @abc.abstractmethod
+    def movePawn(self, pawn: Pawn, posX: int, posY: int) -> None:
+        pass
+        targetPawn = self.gameField[posY][posX]
+        if targetPawn is not None:
+            targetPawns = self.getPawnsForPlayerKey(targetPawn.player)
+            for i in range(len(targetPawns)):
+                if targetPawn is targetPawns[i]:
+                    targetPawns[i] = None
+                    break
+        self.gameField[pawn.posY][pawn.posX] = None
+        self.gameField[posY][posX] = pawn
+        pawn.posX = posX
+        pawn.posY = posY
 
 
 class BauernSchach(Game, ABC):
@@ -158,12 +177,6 @@ class BauernSchach(Game, ABC):
     def checkIfMoveValid(self, move: MoveAction) -> bool:
         return True
 
-    def getPossiblePawnsForPlayer(self, player: str) -> []:
-        pawnsList = []
-        for pawn in self.gameField.getPawnsForPlayerKey(player):
-            if pawn is not None and len(self.getPossiblePawnDestinationsForChosenPawn(pawn)) > 0:
-                pawnsList.append([pawn.posX, pawn.posY])
-        return pawnsList
 
     def getPossiblePawnDestinationsForChosenPawn(self, pawn: Pawn) -> []:
         lineCoord = pawn.posY
@@ -190,6 +203,19 @@ class BauernSchach(Game, ABC):
                 possiblePawnDestinations.append([columnCoord + 1, lineCoord + lineSummand])
         return possiblePawnDestinations
 
+    def movePawn(self, move: MoveAction) -> None:
+        if self.checkIfMoveValid(move):
+            targetPawn = self.gameField.gameField[move.targetPosY][move.targetPosX]
+            if targetPawn is not None:
+                targetPawns = self.gameField.getPawnsForPlayerKey(targetPawn.player)
+                for i in range(len(targetPawns)):
+                    if targetPawn is targetPawns[i]:
+                        targetPawns[i] = None
+                        break
+            self.gameField.gameField[move.pawn.posY][move.pawn.posX] = None
+            self.gameField.gameField[move.targetPosY][move.targetPosX] = move.pawn
+            move.pawn.posX = move.targetPosX
+            move.pawn.posY = move.targetPosY
 
 class Dame(Game, ABC):
 
@@ -245,10 +271,24 @@ class Dame(Game, ABC):
                     if not self.gameField.checkIfSpotContainsEnemy(columnCoord + 2, lineCoord + (lineSummand*2), enemy):
                         possiblePawnDestinations.append([columnCoord + 2, lineCoord + (lineSummand*2)])
         return possiblePawnDestinations
-    
-        # TODO: Alternative Dame-Move that destroys the pawn that is jumped over.
-        # TODO: Re-juping if valid enemy-destroying-move is possible.
 
+    def movePawn(self, move: MoveAction) -> None:
+        print(f"firstmove{move.targetPosX-move.pawn.posX};{move.targetPosY-move.pawn.posY}")
+        if self.checkIfMoveValid(move):
+            targetPawn = self.gameField.gameField[move.targetPosY][move.targetPosX]
+            if targetPawn is not None:
+                targetPawns = self.gameField.getPawnsForPlayerKey(targetPawn.player)
+                for i in range(len(targetPawns)):
+                    if targetPawn is targetPawns[i]:
+                        targetPawns[i] = None
+                        break
+            self.gameField.gameField[move.pawn.posY][move.pawn.posX] = None
+            self.gameField.gameField[move.targetPosY][move.targetPosX] = move.pawn
+            move.pawn.posX = move.targetPosX
+            move.pawn.posY = move.targetPosY
+
+        # TODO: Alternative Dame-Move that destroys the pawn that is jumped over.
+        # TODO: Re-jumping if valid enemy-destroying-move is possible.
 
 class KI(ABC):
 
@@ -355,7 +395,7 @@ class GameController:
         return uInput
 
 
-game = BauernSchach()
+game = Dame()
 game.gameField.printGameField()
 
 gameController = GameController(game, "RandomKi")
