@@ -127,28 +127,9 @@ class Game:
     def getPossiblePawnDestinationsForChosenPawn(self, pawn: Pawn):
         pass
 
-
-    def movePawn(self, move: MoveAction) -> bool:
-        if self.checkIfMoveValid(move):
-            self.gameField.movePawn(move.pawn, move.targetPosX, move.targetPosY)
-            return True
-        else:
-            return False
-
     @abc.abstractmethod
-    def movePawn(self, pawn: Pawn, posX: int, posY: int) -> None:
-        pass
-        targetPawn = self.gameField[posY][posX]
-        if targetPawn is not None:
-            targetPawns = self.getPawnsForPlayerKey(targetPawn.player)
-            for i in range(len(targetPawns)):
-                if targetPawn is targetPawns[i]:
-                    targetPawns[i] = None
-                    break
-        self.gameField[pawn.posY][pawn.posX] = None
-        self.gameField[posY][posX] = pawn
-        pawn.posX = posX
-        pawn.posY = posY
+    def movePawn(self, move: MoveAction) -> bool:
+        return False
 
 
 class BauernSchach(Game, ABC):
@@ -177,7 +158,6 @@ class BauernSchach(Game, ABC):
     def checkIfMoveValid(self, move: MoveAction) -> bool:
         return True
 
-
     def getPossiblePawnDestinationsForChosenPawn(self, pawn: Pawn) -> []:
         lineCoord = pawn.posY
         columnCoord = pawn.posX
@@ -203,7 +183,7 @@ class BauernSchach(Game, ABC):
                 possiblePawnDestinations.append([columnCoord + 1, lineCoord + lineSummand])
         return possiblePawnDestinations
 
-    def movePawn(self, move: MoveAction) -> None:
+    def movePawn(self, move: MoveAction) -> bool:
         if self.checkIfMoveValid(move):
             targetPawn = self.gameField.gameField[move.targetPosY][move.targetPosX]
             if targetPawn is not None:
@@ -216,6 +196,8 @@ class BauernSchach(Game, ABC):
             self.gameField.gameField[move.targetPosY][move.targetPosX] = move.pawn
             move.pawn.posX = move.targetPosX
             move.pawn.posY = move.targetPosY
+            return True
+
 
 class Dame(Game, ABC):
 
@@ -239,7 +221,7 @@ class Dame(Game, ABC):
     def checkIfLose(self, player: str) -> bool:
         return len(self.getPossiblePawnsForPlayer(player)) == 0
 
-    def getPossiblePawnDestinationsForChosenPawn(self, pawn: Pawn) -> []:
+    def getPossiblePawnDestinationsForChosenPawn(self, pawn: Pawn, recursiveMove=False) -> []:
         lineCoord = pawn.posY
         columnCoord = pawn.posX
         possiblePawnDestinations = []
@@ -250,26 +232,27 @@ class Dame(Game, ABC):
             lineSummand = 1
         elif pawn.player == "B":
             lineSummand = -1
-        # Checks if Spot in the Front-Left is not out of bounds and is free
-        if self.gameField.checkIfNotOutOfBounds(columnCoord - 1, lineCoord + lineSummand):
-            if self.gameField.checkIfFreeSpot(columnCoord - 1, lineCoord + lineSummand):
-                possiblePawnDestinations.append([columnCoord - 1, lineCoord + lineSummand])
-        # Checks if Spot in the Front-Right is not out of bounds and is not occupied by an Enemy
-        if self.gameField.checkIfNotOutOfBounds(columnCoord + 1, lineCoord + lineSummand):
-            if self.gameField.checkIfFreeSpot(columnCoord + 1, lineCoord + lineSummand):
-                possiblePawnDestinations.append([columnCoord + 1, lineCoord + lineSummand])
+        if not recursiveMove:
+            # Checks if Spot in the Front-Left is not out of bounds and is free
+            if self.gameField.checkIfNotOutOfBounds(columnCoord - 1, lineCoord + lineSummand):
+                if self.gameField.checkIfFreeSpot(columnCoord - 1, lineCoord + lineSummand):
+                    possiblePawnDestinations.append([columnCoord - 1, lineCoord + lineSummand])
+            # Checks if Spot in the Front-Right is not out of bounds and is not occupied by an Enemy
+            if self.gameField.checkIfNotOutOfBounds(columnCoord + 1, lineCoord + lineSummand):
+                if self.gameField.checkIfFreeSpot(columnCoord + 1, lineCoord + lineSummand):
+                    possiblePawnDestinations.append([columnCoord + 1, lineCoord + lineSummand])
         # Checks if Spot in the Front-Left is not out of bounds, is occupied by an Enemy and if Spot behind is free and not out of bounds
         if self.gameField.checkIfNotOutOfBounds(columnCoord - 1, lineCoord + lineSummand):
             if self.gameField.checkIfSpotContainsEnemy(columnCoord - 1, lineCoord + lineSummand, enemy):
-                if self.gameField.checkIfNotOutOfBounds(columnCoord - 2, lineCoord + (lineSummand*2)):
-                    if not self.gameField.checkIfSpotContainsEnemy(columnCoord - 2, lineCoord + (lineSummand*2), enemy):
-                        possiblePawnDestinations.append([columnCoord - 2, lineCoord + (lineSummand*2)])
+                if self.gameField.checkIfNotOutOfBounds(columnCoord - 2, lineCoord + (lineSummand * 2)):
+                    if self.gameField.checkIfFreeSpot(columnCoord - 2, lineCoord + (lineSummand * 2)):
+                        possiblePawnDestinations.append([columnCoord - 2, lineCoord + (lineSummand * 2)])
         # Checks if Spot in the Front-Right is not out of bounds, is occupied by an Enemy and if Spot behind is free and not out of bounds
         if self.gameField.checkIfNotOutOfBounds(columnCoord + 1, lineCoord + lineSummand):
             if self.gameField.checkIfSpotContainsEnemy(columnCoord + 1, lineCoord + lineSummand, enemy):
-                if self.gameField.checkIfNotOutOfBounds(columnCoord + 2, lineCoord + (lineSummand*2)):
-                    if not self.gameField.checkIfSpotContainsEnemy(columnCoord + 2, lineCoord + (lineSummand*2), enemy):
-                        possiblePawnDestinations.append([columnCoord + 2, lineCoord + (lineSummand*2)])
+                if self.gameField.checkIfNotOutOfBounds(columnCoord + 2, lineCoord + (lineSummand * 2)):
+                    if self.gameField.checkIfFreeSpot(columnCoord + 2, lineCoord + (lineSummand * 2)):
+                        possiblePawnDestinations.append([columnCoord + 2, lineCoord + (lineSummand * 2)])
         return possiblePawnDestinations
 
     def movePawn(self, move: MoveAction) -> bool:
@@ -277,21 +260,31 @@ class Dame(Game, ABC):
             directionX = move.targetPosX - move.pawn.posX
             directionY = move.targetPosY - move.pawn.posY
             if directionX == 2 or directionX == -2:
-                targetPawn = self.gameField.gameField[move.targetPosY - int(directionY / 2)][move.targetPosX - int(directionX / 2)]
+                targetPawn = self.gameField.gameField[move.targetPosY - int(directionY / 2)][
+                    move.targetPosX - int(directionX / 2)]
                 if targetPawn is not None:
                     targetPawns = self.gameField.getPawnsForPlayerKey(targetPawn.player)
                     for i in range(len(targetPawns)):
                         if targetPawn is targetPawns[i]:
                             targetPawns[i] = None
-                            self.gameField.gameField[move.targetPosY - int(directionY / 2)][move.targetPosX - int(directionX / 2)] = None
-                            break
+                            self.gameField.gameField[move.targetPosY - int(directionY / 2)][
+                                move.targetPosX - int(directionX / 2)] = None
+                            self.gameField.gameField[move.pawn.posY][move.pawn.posX] = None
+                            self.gameField.gameField[move.targetPosY][move.targetPosX] = move.pawn
+                            move.pawn.posX = move.targetPosX
+                            move.pawn.posY = move.targetPosY
+                            if len(self.getPossiblePawnDestinationsForChosenPawn(move.pawn, True)) > 0:
+                                return False
+                            return True
             self.gameField.gameField[move.pawn.posY][move.pawn.posX] = None
             self.gameField.gameField[move.targetPosY][move.targetPosX] = move.pawn
             move.pawn.posX = move.targetPosX
             move.pawn.posY = move.targetPosY
+            return True
 
         # TODO: Alternative Dame-Move that destroys the pawn that is jumped over.
         # TODO: Re-jumping if valid enemy-destroying-move is possible.
+
 
 class KI(ABC):
 
@@ -339,7 +332,7 @@ class GameController:
         moveAction = self.ki.getAction("B")
         self.game.movePawn(moveAction)
 
-    def doAction(self, player: str):
+    def doAction(self, player: str, pawn: Optional[Pawn] = None):
         if self.game.checkIfLose(player):
             print("Game Over!")
             return
@@ -347,10 +340,10 @@ class GameController:
         if player == "B":
             self.controlKI()
         else:
-            moveAction = self.userInputPossibleMoves(player)
+            moveAction = self.userInputPossibleMoves(player, pawn)
             if not self.game.movePawn(moveAction):
                 self.game.gameField.printGameField()
-                return self.doAction(player)
+                return self.doAction(player, moveAction.pawn)
         self.game.gameField.printGameField()
         if self.game.checkIfWon(player):
             print("Game Over!")
@@ -359,8 +352,8 @@ class GameController:
         enemy = "B" if player == "A" else "A"
         self.doAction(enemy)
 
-    def userInputPossibleMoves(self, player: str):
-        playerPawns = self.game.getPossiblePawnsForPlayer(player)
+    def userInputPossibleMoves(self, player: str, pawn: Optional[Pawn]):
+        playerPawns = self.game.getPossiblePawnsForPlayer(player) if pawn is None else [[pawn.posX, pawn.posY]]
 
         pawnLoc = None
         while pawnLoc not in playerPawns:
