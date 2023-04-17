@@ -272,16 +272,19 @@ class Dame(Game, ABC):
                         possiblePawnDestinations.append([columnCoord + 2, lineCoord + (lineSummand*2)])
         return possiblePawnDestinations
 
-    def movePawn(self, move: MoveAction) -> None:
-        print(f"firstmove{move.targetPosX-move.pawn.posX};{move.targetPosY-move.pawn.posY}")
+    def movePawn(self, move: MoveAction) -> bool:
         if self.checkIfMoveValid(move):
-            targetPawn = self.gameField.gameField[move.targetPosY][move.targetPosX]
-            if targetPawn is not None:
-                targetPawns = self.gameField.getPawnsForPlayerKey(targetPawn.player)
-                for i in range(len(targetPawns)):
-                    if targetPawn is targetPawns[i]:
-                        targetPawns[i] = None
-                        break
+            directionX = move.targetPosX - move.pawn.posX
+            directionY = move.targetPosY - move.pawn.posY
+            if directionX == 2 or directionX == -2:
+                targetPawn = self.gameField.gameField[move.targetPosY - int(directionY / 2)][move.targetPosX - int(directionX / 2)]
+                if targetPawn is not None:
+                    targetPawns = self.gameField.getPawnsForPlayerKey(targetPawn.player)
+                    for i in range(len(targetPawns)):
+                        if targetPawn is targetPawns[i]:
+                            targetPawns[i] = None
+                            self.gameField.gameField[move.targetPosY - int(directionY / 2)][move.targetPosX - int(directionX / 2)] = None
+                            break
             self.gameField.gameField[move.pawn.posY][move.pawn.posX] = None
             self.gameField.gameField[move.targetPosY][move.targetPosX] = move.pawn
             move.pawn.posX = move.targetPosX
