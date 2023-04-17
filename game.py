@@ -206,8 +206,48 @@ class Dame(Game, ABC):
                     self.gameField.addPawnToGameField(pawn)
 
     def checkIfWon(self, player) -> bool:
-        # TODO: Create Win Condition for Game Dame
-        return False
+        for pawn in self.gameField.getPawnsForPlayerKey(player):
+            if pawn is not None and pawn.posY == (self.gameField.getSize() - 1 if player == "A" else 0):
+                return True
+
+    def checkIfLose(self, player: str) -> bool:
+        return len(self.getPossiblePawnsForPlayer(player)) == 0
+
+    def getPossiblePawnDestinationsForChosenPawn(self, pawn: Pawn) -> []:
+        lineCoord = pawn.posY
+        columnCoord = pawn.posX
+        possiblePawnDestinations = []
+        enemy = "B" if pawn.player == "A" else "A"
+        # alternating columnSummand, depending on which player is currently playing
+        lineSummand = 0
+        if pawn.player == "A":
+            lineSummand = 1
+        elif pawn.player == "B":
+            lineSummand = -1
+        # Checks if Spot in the Front-Left is not out of bounds and is free
+        if self.gameField.checkIfNotOutOfBounds(columnCoord - 1, lineCoord + lineSummand):
+            if self.gameField.checkIfFreeSpot(columnCoord - 1, lineCoord + lineSummand):
+                possiblePawnDestinations.append([columnCoord - 1, lineCoord + lineSummand])
+        # Checks if Spot in the Front-Right is not out of bounds and is not occupied by an Enemy
+        if self.gameField.checkIfNotOutOfBounds(columnCoord + 1, lineCoord + lineSummand):
+            if self.gameField.checkIfFreeSpot(columnCoord + 1, lineCoord + lineSummand):
+                possiblePawnDestinations.append([columnCoord + 1, lineCoord + lineSummand])
+        # Checks if Spot in the Front-Left is not out of bounds, is occupied by an Enemy and if Spot behind is free and not out of bounds
+        if self.gameField.checkIfNotOutOfBounds(columnCoord - 1, lineCoord + lineSummand):
+            if self.gameField.checkIfSpotContainsEnemy(columnCoord - 1, lineCoord + lineSummand, enemy):
+                if self.gameField.checkIfNotOutOfBounds(columnCoord - 2, lineCoord + (lineSummand*2)):
+                    if not self.gameField.checkIfSpotContainsEnemy(columnCoord - 2, lineCoord + (lineSummand*2), enemy):
+                        possiblePawnDestinations.append([columnCoord - 2, lineCoord + (lineSummand*2)])
+        # Checks if Spot in the Front-Right is not out of bounds, is occupied by an Enemy and if Spot behind is free and not out of bounds
+        if self.gameField.checkIfNotOutOfBounds(columnCoord + 1, lineCoord + lineSummand):
+            if self.gameField.checkIfSpotContainsEnemy(columnCoord + 1, lineCoord + lineSummand, enemy):
+                if self.gameField.checkIfNotOutOfBounds(columnCoord + 2, lineCoord + (lineSummand*2)):
+                    if not self.gameField.checkIfSpotContainsEnemy(columnCoord + 2, lineCoord + (lineSummand*2), enemy):
+                        possiblePawnDestinations.append([columnCoord + 2, lineCoord + (lineSummand*2)])
+        return possiblePawnDestinations
+    
+        # TODO: Alternative Dame-Move that destroys the pawn that is jumped over.
+        # TODO: Re-juping if valid enemy-destroying-move is possible.
 
 
 class KI(ABC):
