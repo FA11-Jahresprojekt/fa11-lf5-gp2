@@ -184,7 +184,7 @@ class Database:
         self.__connection.commit()
 
     def getPersonByUserName(self, userName):
-        """Adds a new set of data representing
+        """returns the data of a player via the serach for the userName
 
                 Args:
                     userName (str): string representing the name of the User
@@ -200,6 +200,26 @@ class Database:
         WHERE userName = ?
         """
         self.__cursor.execute(sqlSelectStatement, (userName,))
+        self.__connection.commit()
+        return self.__cursor.fetchall()
+    
+    def getPersonByPlayerId(self, playerId):
+        """returns the data of a player via the serach for the PlayerId
+
+                Args:
+                    PlayerId (int): int representing the id of the player
+
+                Returns:
+                    list: List filled with:
+                            pid (int),
+                            userName (str),
+                            password (str) in hash format
+        """
+        sqlSelectStatement = """
+        SELECT * FROM person 
+        WHERE pid = ?
+        """
+        self.__cursor.execute(sqlSelectStatement, (playerId,))
         self.__connection.commit()
         return self.__cursor.fetchall()
 
