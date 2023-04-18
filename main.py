@@ -1,161 +1,163 @@
-# Example file showing a basic pygame "game loop"
 import pygame
 
-# pygame setup
 pygame.init()
-
-surface = pygame.Surface
-fill = surface.fill # (x, y, widht, height)
-
-# Screen
-SCREEN_WIDTH = 1080
-SCREEN_HEIGHT = 720
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-
+pygame.font.init()
+fontHeading = pygame.font.SysFont('Arial Black', 52)
+fontIcon = pygame.font.SysFont('Arial', 32)
+font = pygame.font.SysFont('Arial', 24)
 background = pygame.image.load('assets/image/background.png')
-highscores = pygame.image.load('assets/image/highscores.png')
-user_image = pygame.image.load('assets/image/user_image.png')
+defaultProfile = pygame.image.load('assets/default.jpg')
 
-# Colors
-white = (255, 255, 255)
-white10p = (230, 230, 230)
-black90p = (25, 25, 25)
+TITLE = "Bauernschach"
 
-#Text
-font_heading = pygame.font.SysFont('Arial Black', 32)
-font_sub_head = pygame.font.SysFont('Arial Bold', 32)
-font_regular = pygame.font.SysFont('Arial', 12)
+SCREEN_WIDTH = 1920
+SCREEN_HEIGHT = 1080
 
+WHITE = (255, 255, 255)
+BORDER = (114, 74, 44)
+BLACK = (0, 0, 0)
 
-clock = pygame.time.Clock()
-running = True
-
-def draw_game_1():
-    fill(screen, white10p, rect=(80, 160, 320, 220))
-    text_placeholder = font_regular.render('Spielvorschau', True, black90p)
-    screen.blit(text_placeholder, (120, 180))
-
-def draw_game_2():
-    fill(screen, white10p, rect=(80, 420, 320, 220))
-    text_placeholder = font_regular.render('Spielvorschau', True, black90p)
-    screen.blit(text_placeholder, (120, 440))
-
-def draw_highscore1():
-    # fill(screen, white10p, rect=(480, 160, 240, 480))  # Highscore 1
-    screen.blit(highscores, (480, 160))
-    text_headline_highscore_1 = font_sub_head.render('Dame', True, white)
-    screen.blit(text_headline_highscore_1, (480, 120))
-
-def draw_highscore2():
-    # fill(screen, white10p, rect=(760, 160, 240, 480)) # Highscore 2
-    screen.blit(highscores, (760, 160))
-    text_headline_highscore_2 = font_sub_head.render('Bauernschach', True, white)
-    screen.blit(text_headline_highscore_2, (760, 120))
-
-def draw_highscores():
-    draw_highscore1()
-    draw_highscore2()
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption(TITLE)
 
 
-def draw_user(user_image, user_name, user_profile_url):
-    # Set the circle's radius and center coordinates
-    radius = 14
-    center = (890, 90)
+def draw_board():
+    rows = 8
+    columns = 8
 
-    # Create a new surface to draw the circle and image on
-    surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+    square_size = 100
 
-    # Draw the circle on the surface
-    pygame.draw.circle(surface, black90p, (radius, radius), radius)
+    leftover = SCREEN_HEIGHT - (columns * square_size)
+    leftOverX = SCREEN_WIDTH - (rows * square_size)
 
-    # Scale the user's image to fit inside the circle
-    image = pygame.transform.scale(user_image, (radius * 2 - 2, radius * 2 - 2))
+    light_color = (196, 156, 126)
+    dark_color = (114, 74, 44)
+    contrast_color = (73, 47, 28)
 
-    # Blit the user's image onto the surface, using the circle as a mask
-    surface.blit(image, (1, 1), special_flags=pygame.BLEND_RGBA_MULT)
+    fieldWidth = columns * square_size
+    fieldHeight = rows * square_size
+    gap = 100
 
-    # Blit the surface onto the main screen, at the center position
-    screen.blit(surface, (center[0] - radius, center[1] - radius))
+    widthScores = SCREEN_WIDTH - (fieldWidth + gap + leftover)
 
-    # Create a new text surface for the user's name
-    text_username = font_regular.render(user_name, True, white)
-
-    # Blit the text surface onto the main screen, next to the circle
-    screen.blit(text_username, (910, 90))
-
-    # Calculate the rectangle's position based on the circle and text positions
-    rect_username = pygame.Rect(
-        (center[0] - radius + 30, center[1] - radius, text_username.get_width(), text_username.get_height()))
-
-    # Add the user's information to a dictionary
-    user_info = {
-        'name': user_name,
-        'profile_url': user_profile_url,
-        'rect_username': rect_username
-    }
-
-    # Update the Pygame window
-    pygame.display.update()
-
-    # Return the user's information
-    return user_info
-
-
-def draw_login():
-    loginField = fill(screen, white10p, rect=(545, 120, 240, 430))
-    loginText = font_regular.render('Login', True, white)
-    screen.blit(loginText, (545, 70))
-
-def draw_guest_login():
-    fill(screen, white10p, rect=(545, 560, 240, 60))  # Gast Login
-
-
-while running:
-
-    # fill the screen with a color to wipe away anything from last frame
-    fill(screen, black90p)
     screen.blit(background, (0, 0))
-        # fill(screen, black90p, rect=(440, 80, 3, 560))  # Trennstrich
 
-    headline_text = font_heading.render('Spielesammlung', True, white)
-    screen.blit(headline_text, (80, 60))
+    for row in range(rows):
+        for column in range(columns):
+            x = column * square_size + leftover / 2
+            y = row * square_size + leftover / 2
 
-    # RENDER YOUR GAME HERE
-    draw_game_1()
-    draw_game_2()
-    # draw_login()
-    # draw_guest_login()
-    draw_highscores()
+            if (row + column) % 2 == 0:
+                color = light_color
+            else:
+                color = dark_color
 
-    user_info = draw_user(user_image, 'Achim', 'test/url')
-    user_name = user_info['name']
-    rect_username = user_info['rect_username']
-    profile_url = user_info['profile_url']
+            # if first or last row and column, draw a circle
+            if (row == 0 or row == rows - 1) and (column == 0 or column == columns - 1):
+                if(row == 0 and column == 0):
+                    pygame.draw.rect(screen, color, (x, y, square_size, square_size), border_top_left_radius=10)
+                elif(row == 0 and column == columns - 1):
+                    pygame.draw.rect(screen, color, (x, y, square_size, square_size), border_top_right_radius=10)
+                elif(row == rows - 1 and column == 0):
+                    pygame.draw.rect(screen, color, (x, y, square_size, square_size), border_bottom_left_radius=10)
+                elif(row == rows - 1 and column == columns - 1):
+                    pygame.draw.rect(screen, color, (x, y, square_size, square_size), border_bottom_right_radius=10)
 
-    # Create a dictionary of user information
-    users = {user_name: user_info}
+            else:
+                pygame.draw.rect(screen, color, (x, y, square_size, square_size))
 
-    # Draw a user and add their information to the dictionary
+    yForText = leftover / 2 - 75
 
-    # poll for events
-    # pygame.QUIT event means the user clicked X to close your window
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+    render_text("Schwierigkeit: 69", leftover / 2,  column * square_size + leftover - 25, WHITE)
+    render_text("Bauernschach", leftover / 2, yForText, WHITE, True)
 
-    if event.type == pygame.MOUSEBUTTONDOWN:
+    draw_current_score("22:32", contrast_color, leftover / 2 + fieldWidth + gap, leftover / 2, widthScores)
+    draw_high_scores([{"username": "Alice", "score": 10},    {"username": "Bob", "score": 20},    {"username": "Charlie", "score": 15}], contrast_color, (81, 57, 40), leftover / 2 + fieldWidth + gap, leftover / 2 + gap * 2, widthScores)
 
-        ## FUNKTIONIERT NOCH NICHT ##
-        # Check if the mouse click was on a username text rectangle
-        for user_info in users.values():
-            if user_info['rect_username'].collidepoint(pygame.mouse.get_pos()):
-                # Direct the user to the profile URL here
-                print('Clicked on username:', user_info['name'], 'profile URL:', user_info['profile_url'])
-        ## --- --- --- --- --- --- ##
+    draw_help(rows*square_size + leftover / 2, yForText)
+    draw_give_up(rows*square_size + leftover / 2 - 75, yForText)
+    draw_user(rows*square_size + leftover / 2 + 200, yForText, "default") # geht nicht warum auch immer
 
-    # flip() the display to put your work on screen
+def draw_current_score(score, color, x, y, width):
+    render_text("Dein Score", x, y - 35, WHITE)
+    pygame.draw.rect(screen, color, (x, y, width, 100), border_radius=10)
+    render_text("Zeit: " + score, x + 20, y + 10, WHITE, True)
+
+
+def draw_high_scores(scores, color, contrastColor, x, y, width):
+    pygame.draw.rect(screen, color, (x, y, width, 600), border_radius=10)
+    render_text("Highscores", x, y - 35, WHITE)
+
+    for i in range(len(scores)):
+        pygame.draw.rect(screen, contrastColor, (x + 5, y + i * 42 + 5, width - 10, 40), border_radius=10)
+        render_text(scores[i]["username"] + ": " + str(scores[i]["score"]), x + 15, y + i * 42 + 9, WHITE)
+
+
+
+def game_loop():
+    screen.fill(WHITE)
+
+    draw_board()
+
     pygame.display.flip()
 
-    clock.tick(60)  # limits FPS to 60
+    running = True
 
-pygame.quit()
+    while running:
+        draw_board()
+        pygame.display.update()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+    pygame.quit()
+
+def draw_user(x, y, name):
+    radius = 26
+
+    circle_surf = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+    image_rect = pygame.Rect(0, 0, radius * 2, radius * 2)
+    image_scaled = pygame.transform.scale(defaultProfile, (radius * 2, radius * 2))
+    circle_surf.blit(image_scaled, image_rect)
+
+    mask = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+    pygame.draw.circle(mask, BLACK, (x - radius, y + radius), radius)
+    circle_surf.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+
+    screen.blit(circle_surf, (x - radius, y + radius))
+    pygame.display.update()
+
+def draw_help(x, y):
+    radius = 26
+
+    if pygame.draw.circle(screen, WHITE, (x - radius, y + radius), radius).collidepoint(pygame.mouse.get_pos()):
+        pygame.draw.circle(screen, WHITE, (x - radius, y + radius), radius + 2)
+
+    screen.blit(fontIcon.render("?", True, BLACK), (x - radius - 9, y + 7))
+
+def draw_give_up(x, y):
+    radius = 26
+
+    RED = (255, 76, 79)
+
+    if pygame.draw.circle(screen, RED, (x - radius, y + radius), radius).collidepoint(pygame.mouse.get_pos()):
+        pygame.draw.circle(screen, RED, (x - radius, y + radius), radius + 2)
+
+    screen.blit(fontIcon.render("A", True, BLACK), (x - radius - 11, y + 7))
+
+def draw_help(x, y):
+    radius = 26
+
+    if pygame.draw.circle(screen, WHITE, (x - radius, y + radius), radius).collidepoint(pygame.mouse.get_pos()):
+        pygame.draw.circle(screen, WHITE, (x - radius, y + radius), radius + 2)
+
+    screen.blit(fontIcon.render("?", True, BLACK), (x - radius - 9, y + 7))
+
+
+def render_text(text, x, y, color, heading=False):
+    if heading:
+        screen.blit(fontHeading.render(text, True, color), (x, y))
+    else:
+        screen.blit(font.render(text, True, color), (x, y))
+
+game_loop()
