@@ -193,6 +193,25 @@ class Database:
                     list: List filled with:
                             pid (int),
                             userName (str),
+        """
+        sqlSelectStatement = """
+        SELECT pid, userName FROM person 
+        WHERE userName = ?
+        """
+        self.__cursor.execute(sqlSelectStatement, (userName,))
+        self.__connection.commit()
+        return self.__cursor.fetchall()
+    
+    def getPersonByUserNameWithPassword(self, userName):
+        """returns the data of a player via the serach for the userName
+
+                Args:
+                    userName (str): string representing the name of the User
+
+                Returns:
+                    list: List filled with:
+                            pid (int),
+                            userName (str),
                             password (str) in hash format
         """
         sqlSelectStatement = """
@@ -213,10 +232,9 @@ class Database:
                     list: List filled with:
                             pid (int),
                             userName (str),
-                            password (str) in hash format
         """
         sqlSelectStatement = """
-        SELECT * FROM person 
+        SELECT pid, userName FROM person 
         WHERE pid = ?
         """
         self.__cursor.execute(sqlSelectStatement, (playerId,))
