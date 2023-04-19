@@ -3,7 +3,7 @@ import copy
 import abc
 import re
 from abc import ABC
-from typing import Optional
+from typing import Optional, Union
 from random import randint
 
 
@@ -99,6 +99,7 @@ class Game:
     def __init__(self):
         self.gameField = GameField()
         self.generatePawns()
+        self.currentPlayer = "A"
 
     @abc.abstractmethod
     def generatePawns(self) -> None:
@@ -131,6 +132,9 @@ class Game:
         else:
             return False
 
+    def switchPlayer(self):
+        self.currentPlayer = "B" if self.currentPlayer == "A" else "A"
+        return self.currentPlayer
 
 class BauernSchach(Game, ABC):
 
@@ -256,7 +260,7 @@ class GameController:
         moveAction = self.ki.getAction("B")
         self.game.movePawn(moveAction)
 
-    def doAction(self, player: str):
+    def doAction(self, player: str, moveAction: Union[MoveAction, None] = None):
         if self.game.checkIfLose(player):
             print("Game Over!")
             return
@@ -264,7 +268,7 @@ class GameController:
         if player == "B":
             self.controlKI()
         else:
-            moveAction = self.userInputPossibleMoves(player)
+            moveAction = self.userInputPossibleMoves(player) if moveAction is None else moveAction
             if not self.game.movePawn(moveAction):
                 self.game.gameField.printGameField()
                 return self.doAction(player)
@@ -313,10 +317,3 @@ class GameController:
             return self.rawUserInput(prompt, regex)
 
         return uInput
-
-
-game = BauernSchach()
-game.gameField.printGameField()
-
-gameController = GameController(game, "RandomKi")
-gameController.startGame()

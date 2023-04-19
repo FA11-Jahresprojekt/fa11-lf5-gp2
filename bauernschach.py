@@ -3,6 +3,8 @@ import time
 import pygame
 from pygame import mixer
 
+from game import BauernSchach, MoveAction, RandomKi
+
 # Initialize pygame
 pygame.init()
 
@@ -20,7 +22,7 @@ COLUMNS = 6
 SQUARE_SIZE = 65
 PADDING = 50
 HELP_TEXT = ["Linie1", "Linie2", "Linie3"]
-DAME_TEXTURES = True
+DAME_TEXTURES = False
 
 # Sounds
 MUSIC_BASE_DIR = "assets/sounds/"
@@ -51,7 +53,12 @@ pygame.display.set_icon(IMAGE_FAVICON)
 
 # Variables
 selected_pawn = []
+mark_pawns = []
 
+
+# Game VARS
+game = BauernSchach()
+ki = RandomKi(game)
 
 def draw_heading():
     leftover = SCREEN_HEIGHT - (COLUMNS * SQUARE_SIZE)
@@ -70,6 +77,7 @@ def draw_pawn(xField, yField, color):
         screen.blit(IMAGE_WHITE_PAWN, (x, y))
     elif color == "black":
         screen.blit(IMAGE_BLACK_PAWN, (x, y))
+
 
 def draw_help_button():
     leftover = SCREEN_HEIGHT - (COLUMNS * SQUARE_SIZE)
@@ -90,6 +98,7 @@ def draw_help_button():
             helpText = arial.render(HELP_TEXT[i], True, (255, 255, 255))
             screen.blit(helpText, (x + 20, y + 20 + i * 30))
 
+
 def draw_quit_button():
     global quit
 
@@ -104,8 +113,9 @@ def draw_quit_button():
 
     if quitButton.collidepoint(pygame.mouse.get_pos()):
         if pygame.mouse.get_pressed()[0]:
-                quit = True
-                mixer.music.play()
+            quit = True
+            mixer.music.play()
+
 
 def draw_quit_warning():
     global quit
@@ -133,6 +143,7 @@ def draw_quit_warning():
         if pygame.mouse.get_pressed()[0]:
             pygame.quit()
 
+
 def draw_button(x, y, text, width=150, height=50):
     image = screen.blit(pygame.transform.scale(IMAGE_BUTTON, (width, height)), (x, y))
     buttonText = arial.render(text, True, (255, 255, 255))
@@ -140,6 +151,7 @@ def draw_button(x, y, text, width=150, height=50):
 
     screen.blit(buttonText, (x + width / 2 - text_width / 2, y + height / 2 - text_height / 2))
     return image
+
 
 def draw_losing_screen(score):
     global lose
@@ -154,7 +166,8 @@ def draw_losing_screen(score):
     draw_background()
     screen.blit(IMAGE_LOSE_LABEL, (SCREEN_WIDTH / 2 - 486 / 2, SCREEN_HEIGHT / 4))
 
-    screen.blit(pygame.transform.scale(IMAGE_STATS_BACKGROUND, (300, 80)), (SCREEN_WIDTH / 2 - 300 / 2, SCREEN_HEIGHT / 4 + 100))
+    screen.blit(pygame.transform.scale(IMAGE_STATS_BACKGROUND, (300, 80)),
+                (SCREEN_WIDTH / 2 - 300 / 2, SCREEN_HEIGHT / 4 + 100))
 
     scoreText = arial.render("Dein Score: " + str(score), True, (255, 255, 255))
     screen.blit(scoreText, (SCREEN_WIDTH / 2 - 300 / 2 + 35, SCREEN_HEIGHT / 4 + 125))
@@ -164,6 +177,7 @@ def draw_losing_screen(score):
     if quitBtn.collidepoint(pygame.mouse.get_pos()):
         if pygame.mouse.get_pressed()[0]:
             pygame.quit()
+
 
 def draw_winning_screen(score):
     global win
@@ -178,7 +192,8 @@ def draw_winning_screen(score):
     draw_background()
     screen.blit(IMAGE_WIN_LABEL, (SCREEN_WIDTH / 2 - 497 / 2, SCREEN_HEIGHT / 4))
 
-    screen.blit(pygame.transform.scale(IMAGE_STATS_BACKGROUND, (300, 80)), (SCREEN_WIDTH / 2 - 300 / 2, SCREEN_HEIGHT / 4 + 100))
+    screen.blit(pygame.transform.scale(IMAGE_STATS_BACKGROUND, (300, 80)),
+                (SCREEN_WIDTH / 2 - 300 / 2, SCREEN_HEIGHT / 4 + 100))
 
     scoreText = arial.render("Dein Score: " + str(score), True, (255, 255, 255))
     screen.blit(scoreText, (SCREEN_WIDTH / 2 - 300 / 2 + 35, SCREEN_HEIGHT / 4 + 125))
@@ -188,6 +203,7 @@ def draw_winning_screen(score):
     if quitBtn.collidepoint(pygame.mouse.get_pos()):
         if pygame.mouse.get_pressed()[0]:
             pygame.quit()
+
 
 def truncline(text, font, maxwidth):
     real = len(text)
@@ -210,6 +226,7 @@ def truncline(text, font, maxwidth):
         done = 0
     return real, done, stext
 
+
 def wrapline(text, font, maxwidth):
     done = 0
     wrapped = []
@@ -220,7 +237,9 @@ def wrapline(text, font, maxwidth):
         text = text[nl:]
     return wrapped
 
+
 def draw_board():
+    global mark_pawns
     leftover = SCREEN_HEIGHT - (COLUMNS * SQUARE_SIZE)
 
     light_color = (196, 156, 126)
@@ -247,8 +266,12 @@ def draw_board():
                     draw_rect_alpha(screen, (0, 0, 0, 50), (x, y, SQUARE_SIZE, SQUARE_SIZE))
                     on_click(column, row)
 
+            if [column, row] in mark_pawns:
+                draw_rect_alpha(screen, (0, 100, 0, 60), (x, y, SQUARE_SIZE, SQUARE_SIZE))
+
             if selected_pawn == [column, row]:
                 draw_rect_alpha(screen, (0, 0, 0, 80), (x, y, SQUARE_SIZE, SQUARE_SIZE))
+
 
 def draw_difficulty():
     leftover = SCREEN_HEIGHT - (COLUMNS * SQUARE_SIZE)
@@ -259,8 +282,9 @@ def draw_difficulty():
 
     screen.blit(difficulty, (x, y))
 
+
 def on_click(column, row):
-    global last_click
+    global last_click, game, mark_pawns, win
 
     if not 'last_click' in globals():
         last_click = pygame.time.get_ticks() - 200
@@ -274,19 +298,49 @@ def on_click(column, row):
             selected_pawn.clear()
             return
 
+        if [column, row] in mark_pawns:
+            print(f"Selected Pawn {column} {row}")
+            pawn = game.gameField.getPawnForPos(column, row)
+            oldPawn = None if len(selected_pawn) != 2 else game.gameField.getPawnForPos(selected_pawn[0], selected_pawn[1])
+            if oldPawn is not None and pawn is None or (pawn is not None and oldPawn is not None and pawn.player != oldPawn.player):
+                print(f"Move Pawn {selected_pawn[0]} {selected_pawn[1]} to {column} {row}")
+                if game.movePawn(MoveAction(oldPawn, column, row)):
+                    selected_pawn.clear()
+                    mark_pawns.clear()
+                    if game.checkIfWon("A"):
+                        win = True
+                        return
+                    game.switchPlayer()
+                    return
+                else:
+                    pass
+            else:
+                if pawn is not None:
+                    mark_pawns = game.getPossiblePawnDestinationsForChosenPawn(pawn)
+                else:
+                    mark_pawns = game.getPossiblePawnsForPlayer(game.currentPlayer)
+        elif len(mark_pawns) != 0:
+            return
+
         if len(selected_pawn) != 0:
             selected_pawn.clear()
 
         selected_pawn.append(column)
         selected_pawn.append(row)
 
+
 def draw_rect_alpha(surface, color, rect):
     shape_surf = pygame.Surface(pygame.Rect(rect).size, pygame.SRCALPHA)
     pygame.draw.rect(shape_surf, color, shape_surf.get_rect())
     surface.blit(shape_surf, rect)
 
+
 def get_leaderboard():
-    return [{"username": "Alice", "score": 104},    {"username": "Bob", "score": 20},    {"username": "Charlie", "score": 15}, {"username": "Alice", "score": 104},    {"username": "Bob", "score": 20},    {"username": "Charlie", "score": 15}, {"username": "Alice", "score": 104},    {"username": "Bob", "score": 20},    {"username": "Charlie", "score": 15}, {"username": "Alice", "score": 104},    {"username": "Bob", "score": 20},    {"username": "Charlie", "score": 15}]
+    return [{"username": "Alice", "score": 104}, {"username": "Bob", "score": 20}, {"username": "Charlie", "score": 15},
+            {"username": "Alice", "score": 104}, {"username": "Bob", "score": 20}, {"username": "Charlie", "score": 15},
+            {"username": "Alice", "score": 104}, {"username": "Bob", "score": 20}, {"username": "Charlie", "score": 15},
+            {"username": "Alice", "score": 104}, {"username": "Bob", "score": 20}, {"username": "Charlie", "score": 15}]
+
 
 def draw_leaderboard():
     minus_padding = (420 - SQUARE_SIZE * ROWS) / 2
@@ -310,6 +364,7 @@ def draw_leaderboard():
         screen.blit(username, (x + 55, y + 35 + i * 30))
         screen.blit(score, (x + 30 + 400, y + 35 + i * 30))
 
+
 def draw_stats():
     global score
 
@@ -330,15 +385,18 @@ def draw_stats():
 def draw_background():
     screen.blit(IMAGE_BACKGROUND, (0, 0))
 
+
 def draw_loading():
     screen.blit(IMAGE_BACKGROUND, (0, 0))
     screen.blit(IMAGE_HEADING_GRUPPE, (SCREEN_WIDTH / 2 - 228, SCREEN_HEIGHT / 2 - 37.5))
 
+
 def draw_text(text, x, y, color):
     screen.blit(arial.render(text, True, color), (x, y))
 
+
 def game_loop():
-    global IMAGE_HEADING, IMAGE_BLACK_PAWN, IMAGE_WHITE_PAWN
+    global IMAGE_HEADING, IMAGE_BLACK_PAWN, IMAGE_WHITE_PAWN, game, mark_pawns, lose
 
     if DAME_TEXTURES:
         IMAGE_HEADING = pygame.image.load(IMAGE_BASE_DIR + 'heading_dame.png')
@@ -358,11 +416,30 @@ def game_loop():
     running = True
 
     while running:
+
+        game.checkIfLose(game.currentPlayer)
+
+        if game.currentPlayer == "A":
+            if len(selected_pawn) == 0:
+                mark_pawns = game.getPossiblePawnsForPlayer("A")
+            else:
+                pass
+        else:
+            action = ki.getAction("B")
+            game.movePawn(action)
+            if game.checkIfWon("B"):
+                lose = True
+            game.switchPlayer()
         draw_board()
         draw_leaderboard()
         draw_help_button()
         draw_quit_button()
         draw_stats()
+
+        for row in game.gameField.gameField:
+            for field in row:
+                if field is not None:
+                    draw_pawn(field.posX, field.posY, "white" if field.player == "A" else "black")
 
         draw_quit_warning()
         draw_winning_screen(200)
