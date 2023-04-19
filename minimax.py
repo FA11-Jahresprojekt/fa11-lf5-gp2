@@ -14,7 +14,10 @@ def minimax(position, depth, alpha=-math.inf, beta=math.inf, parent=None):
         maxEvalNode = None
         maxParent = None
         for child in position.childs:
-            newParent = copy.deepcopy(parent)
+            newParent = []
+            for p in parent:
+                newParent.append(p)
+            # newParent = copy.deepcopy(parent)
             newParent.append(position)
             eval, evalNode, p = minimax(child, depth - 1, alpha, beta, newParent)
             maxEval = max(maxEval, eval)
@@ -31,7 +34,10 @@ def minimax(position, depth, alpha=-math.inf, beta=math.inf, parent=None):
         minEvalNode = None
         minParent = None
         for child in position.childs:
-            newParent = copy.deepcopy(parent)
+            newParent = []
+            for p in parent:
+                newParent.append(p)
+            # newParent = copy.deepcopy(parent)
             newParent.append(position)
             eval, evalNode, p = minimax(child, depth - 1, alpha, beta, newParent)
             minEval = min(minEval, eval)

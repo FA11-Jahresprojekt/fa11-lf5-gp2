@@ -3,7 +3,7 @@ import time
 import pygame
 from pygame import mixer
 
-from game import BauernSchach, MoveAction, RandomKi
+from game import BauernSchach, Dame, MoveAction, MiniMaxKI, RandomKi
 
 # Initialize pygame
 pygame.init()
@@ -54,11 +54,12 @@ pygame.display.set_icon(IMAGE_FAVICON)
 # Variables
 selected_pawn = []
 mark_pawns = []
-
+disable_deselect = False
 
 # Game VARS
-game = BauernSchach()
-ki = RandomKi(game)
+game = BauernSchach(6)
+
+ki = MiniMaxKI(game)
 
 def draw_heading():
     leftover = SCREEN_HEIGHT - (COLUMNS * SQUARE_SIZE)
@@ -284,7 +285,7 @@ def draw_difficulty():
 
 
 def on_click(column, row):
-    global last_click, game, mark_pawns, win
+    global last_click, game, mark_pawns, selected_pawn, win, disable_deselect
 
     if not 'last_click' in globals():
         last_click = pygame.time.get_ticks() - 200
@@ -294,7 +295,7 @@ def on_click(column, row):
 
         last_click = pygame.time.get_ticks()
 
-        if selected_pawn == [column, row]:
+        if selected_pawn == [column, row] and not disable_deselect:
             selected_pawn.clear()
             return
 
@@ -305,15 +306,27 @@ def on_click(column, row):
             if oldPawn is not None and pawn is None or (pawn is not None and oldPawn is not None and pawn.player != oldPawn.player):
                 print(f"Move Pawn {selected_pawn[0]} {selected_pawn[1]} to {column} {row}")
                 if game.movePawn(MoveAction(oldPawn, column, row)):
-                    selected_pawn.clear()
-                    mark_pawns.clear()
                     if game.checkIfWon("A"):
                         win = True
                         return
+                    if disable_deselect:
+                        disable_deselect = False
+                    selected_pawn.clear()
+                    mark_pawns.clear()
                     game.switchPlayer()
                     return
                 else:
-                    pass
+                    if game.checkIfWon("A"):
+                        win = True
+                        return
+                    selected_pawn.clear()
+                    selected_pawn.append(column)
+                    selected_pawn.append(row)
+                    disable_deselect = True
+                    mark_pawns = game.getPossiblePawnDestinationsForChosenPawn(oldPawn, True)
+                    return
+                    print("debugger")
+
             else:
                 if pawn is not None:
                     mark_pawns = game.getPossiblePawnDestinationsForChosenPawn(pawn)
@@ -396,7 +409,7 @@ def draw_text(text, x, y, color):
 
 
 def game_loop():
-    global IMAGE_HEADING, IMAGE_BLACK_PAWN, IMAGE_WHITE_PAWN, game, mark_pawns, lose
+    global IMAGE_HEADING, IMAGE_BLACK_PAWN, IMAGE_WHITE_PAWN, game, mark_pawns, lose, win
 
     if DAME_TEXTURES:
         IMAGE_HEADING = pygame.image.load(IMAGE_BASE_DIR + 'heading_dame.png')
@@ -405,7 +418,7 @@ def game_loop():
 
     draw_loading()
     pygame.display.flip()
-    time.sleep(2)
+    # time.sleep(2)
 
     draw_background()
     draw_heading()
@@ -417,19 +430,23 @@ def game_loop():
 
     while running:
 
-        game.checkIfLose(game.currentPlayer)
-
         if game.currentPlayer == "A":
+            if game.checkIfLose("A"):
+                lose = True
             if len(selected_pawn) == 0:
                 mark_pawns = game.getPossiblePawnsForPlayer("A")
             else:
                 pass
         else:
-            action = ki.getAction("B")
-            game.movePawn(action)
-            if game.checkIfWon("B"):
-                lose = True
-            game.switchPlayer()
+            if game.checkIfLose("B"):
+                win = True
+            else:
+                action = ki.getAction("B")
+                game.movePawn(action)
+                if game.checkIfWon("B"):
+                    lose = True
+                else:
+                    game.switchPlayer()
         draw_board()
         draw_leaderboard()
         draw_help_button()
@@ -441,9 +458,11 @@ def game_loop():
                 if field is not None:
                     draw_pawn(field.posX, field.posY, "white" if field.player == "A" else "black")
 
+
         draw_quit_warning()
         draw_winning_screen(200)
         draw_losing_screen(200)
+
         pygame.display.update()
 
         for event in pygame.event.get():

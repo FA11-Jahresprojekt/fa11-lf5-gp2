@@ -129,7 +129,7 @@ class Game:
 
     @abc.abstractmethod
     def getPossiblePawnDestinationsForChosenPawn(self, pawn: Pawn):
-        pass
+        return []
 
     @abc.abstractmethod
     def movePawn(self, move: MoveAction) -> bool:
@@ -147,17 +147,17 @@ class MiniMaxNode:
         self.maximizingPlayer = maximizingPlayer
 
     def staticEvaluation(self):
-        player = "A" if self.maximizingPlayer else "B"
+        player = "B" if self.maximizingPlayer else "A"
         score = 0
 
-        if player == "A":
+        if player == "B":
             if self.moveAction.targetPosY == 5:
                 return 50
         else:
             if self.moveAction.targetPosY == 0:
                 return -50
 
-        if player == "A":
+        if player == "B":
             score = score + self.moveAction.targetPosY * 2
         else:
             score = score - (5 - self.moveAction.targetPosY) * 2
@@ -165,13 +165,13 @@ class MiniMaxNode:
         playerAPawn = self.game.getPossiblePawnsForPlayer("A")
         playerBPawn = self.game.getPossiblePawnsForPlayer("B")
 
-        score = score + len(playerAPawn)
-        score = score - len(playerBPawn)
+        score = score - len(playerAPawn)
+        score = score + len(playerBPawn)
 
         for pawn in playerAPawn:
-            score = score + (pawn[1] * 0.5)
-        for pawn in playerBPawn:
             score = score - ((5 - pawn[1]) * 0.5)
+        for pawn in playerBPawn:
+            score = score + (pawn[1] * 0.5)
 
         return score
 
@@ -186,12 +186,12 @@ class BauernSchach(Game, ABC):
         size = self.gameField.getSize()
         for y in [0, size - 1]:
             for x in range(size):
-                pawn = Pawn(x, y, ("A" if y == 0 else "B"))
+                pawn = Pawn(x, y, ("B" if y == 0 else "A"))
                 self.gameField.addPawnToGameField(pawn)
 
     def checkIfWon(self, player) -> bool:
         for pawn in self.gameField.getPawnsForPlayerKey(player):
-            if pawn is not None and pawn.posY == (self.gameField.getSize() - 1 if player == "A" else 0):
+            if pawn is not None and pawn.posY == (self.gameField.getSize() - 1 if player == "B" else 0):
                 return True
 
         return False
@@ -210,9 +210,9 @@ class BauernSchach(Game, ABC):
         # alternating columnSummand, depending on which player is currently playing
         lineSummand = 0
         if pawn.player == "A":
-            lineSummand = 1
-        elif pawn.player == "B":
             lineSummand = -1
+        elif pawn.player == "B":
+            lineSummand = 1
         # Checks if Spot in Front is not out of bounds and free
         if self.gameField.checkIfNotOutOfBounds(columnCoord, lineCoord + lineSummand):
             if self.gameField.checkIfFreeSpot(columnCoord, lineCoord + lineSummand):
@@ -254,12 +254,16 @@ class Dame(Game, ABC):
         for y in [0, 1, size - 2, size - 1]:
             for x in range(size):
                 if (x % 2 != 0 and y % 2 == 0) or (x % 2 == 0 and y % 2 != 0):
-                    pawn = Pawn(x, y, ("A" if y == 0 or y == 1 else "B"))
+                    pawn = Pawn(x, y, ("B" if y == 0 or y == 1 else "A"))
                     self.gameField.addPawnToGameField(pawn)
+        # pawns = [Pawn(0, 5, "A"), Pawn(1, 4, "B"), Pawn(3, 2, "B"), Pawn(5, 0, "B"), Pawn(4, 5, "A")]
+        #
+        # for pawn in pawns:
+        #     self.gameField.addPawnToGameField(pawn)
 
     def checkIfWon(self, player) -> bool:
         for pawn in self.gameField.getPawnsForPlayerKey(player):
-            if pawn is not None and pawn.posY == (self.gameField.getSize() - 1 if player == "A" else 0):
+            if pawn is not None and pawn.posY == (self.gameField.getSize() - 1 if player == "B" else 0):
                 return True
 
     def checkIfLose(self, player: str) -> bool:
@@ -273,9 +277,9 @@ class Dame(Game, ABC):
         # alternating columnSummand, depending on which player is currently playing
         lineSummand = 0
         if pawn.player == "A":
-            lineSummand = 1
-        elif pawn.player == "B":
             lineSummand = -1
+        elif pawn.player == "B":
+            lineSummand = 1
         if not recursiveMove:
             # Checks if Spot in the Front-Left is not out of bounds and is free
             if self.gameField.checkIfNotOutOfBounds(columnCoord - 1, lineCoord + lineSummand):
@@ -326,9 +330,6 @@ class Dame(Game, ABC):
             move.pawn.posY = move.targetPosY
             return True
 
-        # TODO: Alternative Dame-Move that destroys the pawn that is jumped over.
-        # TODO: Re-jumping if valid enemy-destroying-move is possible.
-
 
 class KI(ABC):
 
@@ -366,7 +367,7 @@ class RandomKi(KI, ABC):
 class MiniMaxKI(KI, ABC):
 
     def convertGameFieldToMiniMaxNode(self, player: str, depth=3) -> MiniMaxNode:
-        return MiniMaxNode(self.game, self.gameToMiniMaxNodes(self.game, player, depth), player == "A")
+        return MiniMaxNode(self.game, self.gameToMiniMaxNodes(self.game, player, depth), player != "A")
 
     def gameToMiniMaxNodes(self, game: Game, player: str, depth: int) -> []:
         if depth == 0:
@@ -377,15 +378,18 @@ class MiniMaxKI(KI, ABC):
             pawn = game.gameField.getPawnForPos(pawnPos[0], pawnPos[1])
             pawnPossiblePositions = game.getPossiblePawnDestinationsForChosenPawn(pawn)
             for pawnTargetPos in pawnPossiblePositions:
-                newPawn = copy.deepcopy(pawn)
-                newPawnVirtual = copy.deepcopy(pawn)
-                moveActionVirtual = MoveAction(newPawnVirtual, pawnTargetPos[0], pawnTargetPos[1])
-                moveAction = MoveAction(newPawn, pawnTargetPos[0], pawnTargetPos[1])
                 newGame = copy.deepcopy(game)
+                newPawn = newGame.gameField.getPawnForPos(pawnPos[0], pawnPos[1])
+
+                newPawnVirtual = copy.deepcopy(newPawn)
+                moveActionVirtual = MoveAction(newPawnVirtual, pawnTargetPos[0], pawnTargetPos[1])
+
+                moveAction = MoveAction(newPawn, pawnTargetPos[0], pawnTargetPos[1])
+
                 newGame.movePawn(moveAction)
                 enemy = "B" if player == "A" else "A"
                 nodes.append(MiniMaxNode(newGame, self.gameToMiniMaxNodes(newGame, enemy, depth - 1), moveActionVirtual,
-                                         player != "A"))
+                                         player == "A"))
         return nodes
 
     def chooseMoveAction(self, possible_actions: []) -> MoveAction:
@@ -469,9 +473,3 @@ class GameController:
 
         return uInput
 
-
-game = BauernSchach()
-game.gameField.printGameField()
-
-gameController = GameController(game, "RandomKi")
-gameController.startGame()
