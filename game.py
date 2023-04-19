@@ -3,8 +3,10 @@ import copy
 import abc
 import re
 from abc import ABC
-from typing import Optional, Union
+from typing import Optional
 from random import randint
+
+from minimax import minimax
 
 
 def containsKey(dict, searchKey) -> bool:
@@ -96,7 +98,8 @@ class GameField:
 #     return len(action.childs) + amountChilds
 
 class Game:
-    def __init__(self):
+    def __init__(self, difficultly: int):
+        self.difficultly = difficultly
         self.gameField = GameField()
         self.generatePawns()
         self.currentPlayer = "A"
@@ -136,11 +139,48 @@ class Game:
         self.currentPlayer = "B" if self.currentPlayer == "A" else "A"
         return self.currentPlayer
 
+class MiniMaxNode:
+    def __init__(self, game: Game, childs: [], moveAction: Optional[MoveAction] = None, maximizingPlayer=False):
+        self.game = game
+        self.childs = childs
+        self.moveAction = moveAction
+        self.maximizingPlayer = maximizingPlayer
+
+    def staticEvaluation(self):
+        player = "A" if self.maximizingPlayer else "B"
+        score = 0
+
+        if player == "A":
+            if self.moveAction.targetPosY == 5:
+                return 50
+        else:
+            if self.moveAction.targetPosY == 0:
+                return -50
+
+        if player == "A":
+            score = score + self.moveAction.targetPosY * 2
+        else:
+            score = score - (5 - self.moveAction.targetPosY) * 2
+
+        playerAPawn = self.game.getPossiblePawnsForPlayer("A")
+        playerBPawn = self.game.getPossiblePawnsForPlayer("B")
+
+        score = score + len(playerAPawn)
+        score = score - len(playerBPawn)
+
+        for pawn in playerAPawn:
+            score = score + (pawn[1] * 0.5)
+        for pawn in playerBPawn:
+            score = score - ((5 - pawn[1]) * 0.5)
+
+        return score
+
+
 class BauernSchach(Game, ABC):
 
-    def __init__(self, gameField: GameField = GameField()):
+    def __init__(self, difficultly: int, gameField: GameField = GameField()):
         self.gameField = gameField
-        super().__init__()
+        super().__init__(difficultly)
 
     def generatePawns(self) -> None:
         size = self.gameField.getSize()
@@ -197,9 +237,9 @@ class BauernSchach(Game, ABC):
 
 class Dame(Game, ABC):
 
-    def __init__(self, gameField: GameField = GameField()):
+    def __init__(self, difficultly: int, gameField: GameField = GameField()):
         self.gameField = gameField
-        super().__init__()
+        super().__init__(difficultly)
 
     def generatePawns(self) -> None:
         size = self.gameField.getSize()
@@ -231,7 +271,9 @@ class KI(ABC):
 
     def getAction(self, player: str) -> MoveAction:
         possibleActions = self.generateAllMoveActions(player)
-        return self.chooseMoveAction(possibleActions)
+        moveAction = self.chooseMoveAction(possibleActions)
+        pawn = self.game.gameField.getPawnForPos(moveAction.pawn.posX, moveAction.pawn.posY)
+        return MoveAction(pawn, moveAction.targetPosX, moveAction.targetPosY)
 
     @abc.abstractmethod
     def chooseMoveAction(self, possible_actions: []) -> MoveAction:
@@ -243,6 +285,39 @@ class RandomKi(KI, ABC):
     def chooseMoveAction(self, possible_actions: []) -> MoveAction:
         random = randint(0, len(possible_actions) - 1)
         return possible_actions[random]
+
+
+class MiniMaxKI(KI, ABC):
+
+    def convertGameFieldToMiniMaxNode(self, player: str, depth=3) -> MiniMaxNode:
+        return MiniMaxNode(self.game, self.gameToMiniMaxNodes(self.game, player, depth), player == "A")
+
+    def gameToMiniMaxNodes(self, game: Game, player: str, depth: int) -> []:
+        if depth == 0:
+            return []
+        nodes = []
+        possiblePawns = game.getPossiblePawnsForPlayer(player)
+        for pawnPos in possiblePawns:
+            pawn = game.gameField.getPawnForPos(pawnPos[0], pawnPos[1])
+            pawnPossiblePositions = game.getPossiblePawnDestinationsForChosenPawn(pawn)
+            for pawnTargetPos in pawnPossiblePositions:
+                newPawn = copy.deepcopy(pawn)
+                newPawnVirtual = copy.deepcopy(pawn)
+                moveActionVirtual = MoveAction(newPawnVirtual, pawnTargetPos[0], pawnTargetPos[1])
+                moveAction = MoveAction(newPawn, pawnTargetPos[0], pawnTargetPos[1])
+                newGame = copy.deepcopy(game)
+                newGame.movePawn(moveAction)
+                enemy = "B" if player == "A" else "A"
+                nodes.append(MiniMaxNode(newGame, self.gameToMiniMaxNodes(newGame, enemy, depth - 1), moveActionVirtual,
+                                         player != "A"))
+        return nodes
+
+    def chooseMoveAction(self, possible_actions: []) -> MoveAction:
+        node = self.convertGameFieldToMiniMaxNode("B", self.game.difficultly)
+        outcome = minimax(node, self.game.difficultly)
+        outcome[2].append(outcome[1])
+        print(outcome[0])
+        return outcome[2][1].moveAction
 
 
 class GameController:
@@ -260,7 +335,7 @@ class GameController:
         moveAction = self.ki.getAction("B")
         self.game.movePawn(moveAction)
 
-    def doAction(self, player: str, moveAction: Union[MoveAction, None] = None):
+    def doAction(self, player: str):
         if self.game.checkIfLose(player):
             print("Game Over!")
             return
@@ -268,7 +343,7 @@ class GameController:
         if player == "B":
             self.controlKI()
         else:
-            moveAction = self.userInputPossibleMoves(player) if moveAction is None else moveAction
+            moveAction = self.userInputPossibleMoves(player)
             if not self.game.movePawn(moveAction):
                 self.game.gameField.printGameField()
                 return self.doAction(player)
