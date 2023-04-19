@@ -169,7 +169,7 @@ def draw_losing_screen(score):
     screen.blit(pygame.transform.scale(IMAGE_STATS_BACKGROUND, (300, 80)),
                 (SCREEN_WIDTH / 2 - 300 / 2, SCREEN_HEIGHT / 4 + 100))
 
-    scoreText = arial.render("Dein Score: " + str(score), True, (255, 255, 255))
+    scoreText = arial.render("Destoryed Pawns: " + str(score), True, (255, 255, 255))
     screen.blit(scoreText, (SCREEN_WIDTH / 2 - 300 / 2 + 35, SCREEN_HEIGHT / 4 + 125))
 
     quitBtn = draw_button(SCREEN_WIDTH / 2 - 500 / 2, SCREEN_HEIGHT / 2 - 67 / 2 + 150, "Spiel beenden", 500, 67)
@@ -195,7 +195,7 @@ def draw_winning_screen(score):
     screen.blit(pygame.transform.scale(IMAGE_STATS_BACKGROUND, (300, 80)),
                 (SCREEN_WIDTH / 2 - 300 / 2, SCREEN_HEIGHT / 4 + 100))
 
-    scoreText = arial.render("Dein Score: " + str(score), True, (255, 255, 255))
+    scoreText = arial.render("Destoryed Pawns: " + str(score), True, (255, 255, 255))
     screen.blit(scoreText, (SCREEN_WIDTH / 2 - 300 / 2 + 35, SCREEN_HEIGHT / 4 + 125))
 
     quitBtn = draw_button(SCREEN_WIDTH / 2 - 500 / 2, SCREEN_HEIGHT / 2 - 67 / 2 + 150, "Spiel beenden", 500, 67)
@@ -459,8 +459,8 @@ def game_loop():
 
 
         draw_quit_warning()
-        draw_winning_screen(200)
-        draw_losing_screen(200)
+        draw_winning_screen(game.gameField.destoryedPawns["A"])
+        draw_losing_screen(game.gameField.destoryedPawns["A"])
 
         pygame.display.update()
 
