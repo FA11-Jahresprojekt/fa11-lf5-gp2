@@ -57,9 +57,8 @@ mark_pawns = []
 disable_deselect = False
 
 # Game VARS
-game = BauernSchach(6)
-
-ki = MiniMaxKI(game)
+game = BauernSchach(0)
+ki = RandomKi(game)
 
 def draw_heading():
     leftover = SCREEN_HEIGHT - (COLUMNS * SQUARE_SIZE)

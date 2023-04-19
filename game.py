@@ -8,6 +8,8 @@ from random import randint
 
 from minimax import minimax
 
+from database import Database
+
 
 def containsKey(dict, searchKey) -> bool:
     for key in dict.keys():
@@ -35,6 +37,7 @@ class MoveAction:
 
 class GameField:
     def __init__(self, size=6, players=["A", "B"]):
+        self.destoryedPawns = {player: 0 for player in players}
         self.playerPawns = {player: [] for player in players}
         self.gameField = [[None for _ in range(size)] for _ in range(size)]
 
@@ -139,6 +142,7 @@ class Game:
         self.currentPlayer = "B" if self.currentPlayer == "A" else "A"
         return self.currentPlayer
 
+
 class MiniMaxNode:
     def __init__(self, game: Game, childs: [], moveAction: Optional[MoveAction] = None, maximizingPlayer=False):
         self.game = game
@@ -192,12 +196,23 @@ class BauernSchach(Game, ABC):
     def checkIfWon(self, player) -> bool:
         for pawn in self.gameField.getPawnsForPlayerKey(player):
             if pawn is not None and pawn.posY == (self.gameField.getSize() - 1 if player == "B" else 0):
+                # TODO: PlayerID
+                Database.getInstance().registerNewGame(-1, "Bauernschach", self.difficultly,
+                                                       "won" if player == "A" else "lost",
+                                                       self.gameField.destoryedPawns['A'])
                 return True
 
         return False
 
     def checkIfLose(self, player: str) -> bool:
-        return len(self.getPossiblePawnsForPlayer(player)) == 0
+        lost = len(self.getPossiblePawnsForPlayer(player)) == 0
+
+        if lost:
+            # TODO: PlayerID
+            Database.getInstance().registerNewGame(-1, "Bauernschach", self.difficultly,
+                                                   "lost" if player == "A" else "won", self.gameField.destoryedPawns['A'])
+
+        return lost
 
     def checkIfMoveValid(self, move: MoveAction) -> bool:
         return True
@@ -235,6 +250,7 @@ class BauernSchach(Game, ABC):
                 for i in range(len(targetPawns)):
                     if targetPawn is targetPawns[i]:
                         targetPawns[i] = None
+                        self.gameField.destoryedPawns[move.pawn.player] += 1
                         break
             self.gameField.gameField[move.pawn.posY][move.pawn.posX] = None
             self.gameField.gameField[move.targetPosY][move.targetPosX] = move.pawn
@@ -315,6 +331,7 @@ class Dame(Game, ABC):
                     for i in range(len(targetPawns)):
                         if targetPawn is targetPawns[i]:
                             targetPawns[i] = None
+                            self.gameField.destoryedPawns[move.pawn.player] += 1
                             self.gameField.gameField[move.targetPosY - int(directionY / 2)][
                                 move.targetPosX - int(directionX / 2)] = None
                             self.gameField.gameField[move.pawn.posY][move.pawn.posX] = None
@@ -472,4 +489,3 @@ class GameController:
             return self.rawUserInput(prompt, regex)
 
         return uInput
-
